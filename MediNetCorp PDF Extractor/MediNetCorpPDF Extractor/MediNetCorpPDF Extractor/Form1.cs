@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Windows.Forms;
 using System.IO;
 using Microsoft.Office.Interop.Excel;
@@ -52,7 +50,7 @@ namespace MediNetCorpPDF_Extractor
                                 File.Copy(file, Path.Combine(excelFileDestination, Path.GetFileName(file)), true);
                                 MessageBox.Show(file + " uploaded  Successfully");
                                 ProcessExcel(file);
-                                DirectoryClean();
+                                //DirectoryClean();
                             }
 
                             else
@@ -75,7 +73,7 @@ namespace MediNetCorpPDF_Extractor
                                 File.Copy(file, Path.Combine(excelFileDestination, Path.GetFileName(file)), true);
                                 MessageBox.Show(file + " uploaded  Successfully");
                                 ProcessExcel(file);
-                                DirectoryClean();
+                                //DirectoryClean();
                             }
                             else
                             {
@@ -116,44 +114,60 @@ namespace MediNetCorpPDF_Extractor
                 //find the used range in worksheet
                 Range excelRange = worksheet.UsedRange;
 
-                //get an object array of all of the cells in the worksheet (their values)
-                object[,] valueArray = (object[,])excelRange.get_Value(XlRangeValueDataType.xlRangeValueDefault);
+                string pdf = "Dr. Anuj Camanocha";
+                string remark = "Updated";
 
+                excelRange.AutoFilter(2, pdf,
+                                 Microsoft.Office.Interop.Excel.XlAutoFilterOperator.xlFilterValues, Type.Missing, true);
 
-                var cellValue = (worksheet.Cells[2, 2] as Microsoft.Office.Interop.Excel.Range).Text;
+                excelRange.AutoFilter(16, remark,
+                                 Microsoft.Office.Interop.Excel.XlAutoFilterOperator.xlFilterValues, Type.Missing, true);
 
-                int rowCount = worksheet.UsedRange.Rows.Count;
-                int columnCount = worksheet.UsedRange.Columns.Count;
+                CreateExcel(pdf);
 
-                List<string> columnValue = new List<string>();
-                List<string> BookmarkColumnValue = new List<string>();
-                Microsoft.Office.Interop.Excel.Range visibleCells = worksheet.UsedRange.SpecialCells(
-                                 Microsoft.Office.Interop.Excel.XlCellType.xlCellTypeVisible,
-                           Type.Missing);
-                var dictionary = new List<KeyValuePair<string, string>>();
-                var providerDictionary = new List<KeyValuePair<string, string>>();
-                List<Tuple<string, string, string>> list = new List<Tuple<string, string, string>>();
-                foreach (Microsoft.Office.Interop.Excel.Range area in visibleCells.Areas)
-                {
-                    foreach (Microsoft.Office.Interop.Excel.Range row in area.Rows)
-                    {
-                        string softwareName = ((Microsoft.Office.Interop.Excel.Range)row.Cells[2, 2]).Text;
-                        if (softwareName != ""){
-                            
-                            SendEmail(softwareName);
-                        }
-                    }
-                }
-                MessageBox.Show("All Report has been send to perticular doctors");
+                string destPath = "D:\\" + pdf + ".xlsx";
+                Workbook destworkBook = _excelApp.Workbooks.Open(destPath, 0, false);
+                Worksheet destworkSheet = destworkBook.Worksheets.get_Item(1);
+
+                Range from = worksheet.UsedRange;
+                Range to = destworkSheet.UsedRange;
+
+                from.Copy(to);
+
+                destworkBook.SaveAs("D:\\" + pdf + ".xlsx");              
+               
+                destworkBook.Close(false, Type.Missing, Type.Missing);
                 workbook.Close(false, Type.Missing, Type.Missing);
                 _excelApp.Quit();
-              
+                   
+                MessageBox.Show("EXcel Generated Successfully");
+
             }
             catch (Exception ex)
             {
                 MessageBox.Show(ex.Message);
             }
 
+        }
+
+        public void CreateExcel(string pdf)
+        {
+            Microsoft.Office.Interop.Excel.Application xlApp = new Microsoft.Office.Interop.Excel.Application();
+            Microsoft.Office.Interop.Excel.Workbook xlWorkBook;
+            Microsoft.Office.Interop.Excel.Worksheet xlWorkSheet;
+            object misValue = System.Reflection.Missing.Value;
+
+            xlWorkBook = xlApp.Workbooks.Add(misValue);
+            xlWorkSheet = (Microsoft.Office.Interop.Excel.Worksheet)xlWorkBook.Worksheets.get_Item(1);
+         
+
+            //Here saving the file in xlsx
+            xlWorkBook.SaveAs("D:\\"+ pdf +".xlsx", Microsoft.Office.Interop.Excel.XlFileFormat.xlOpenXMLWorkbook, misValue,
+            misValue, misValue, misValue, Microsoft.Office.Interop.Excel.XlSaveAsAccessMode.xlExclusive, misValue, misValue, misValue, misValue, misValue);
+
+
+            xlWorkBook.Close(true, misValue, misValue);
+            xlApp.Quit();       
         }
 
         public void SendEmail(string softwareName)
