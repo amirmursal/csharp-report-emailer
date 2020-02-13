@@ -24,7 +24,7 @@ namespace MediNetCorpPDF_Extractor
                 foreach (string file in AllExcelFiles)
                 {
                     File.Delete(file);
-                }               
+                }
             }
             catch (Exception ex)
             {
@@ -96,50 +96,67 @@ namespace MediNetCorpPDF_Extractor
         {
 
             try
-            {  
-                //create the Application object we can use in the member functions.
-                Microsoft.Office.Interop.Excel.Application _excelApp = new Microsoft.Office.Interop.Excel.Application();
-                _excelApp.Visible = true;
+            {
+                string[] FilterList = new string[] { "Dr. Anuj Camanocha", "Damon M Barbieri" , "DR Baptiste", "Dr Kerry White Brown", "Dr Shafeena Chatur", "Dr. Dunn", "Dr. Grob", "Dr. McGill", "Dr. Williams", "Dr.Bahr", "Dr.chawla", "GSO", "Hickory Tops" };
 
-                //open the workbook
-                Workbook workbook = _excelApp.Workbooks.Open(file,
-                    Type.Missing, Type.Missing, Type.Missing, Type.Missing,
-                    Type.Missing, Type.Missing, Type.Missing, Type.Missing,
-                    Type.Missing, Type.Missing, Type.Missing, Type.Missing,
-                    Type.Missing, Type.Missing);
+                foreach (string pdf in FilterList)
+                {
 
-                //select the first sheet        
-                Worksheet worksheet = (Worksheet)workbook.Worksheets[1];
+                    //create the Application object we can use in the member functions.
+                    Microsoft.Office.Interop.Excel.Application _excelApp = new Microsoft.Office.Interop.Excel.Application();
+                    _excelApp.Visible = true;
 
-                //find the used range in worksheet
-                Range excelRange = worksheet.UsedRange;
+                    //open the workbook
+                    Workbook workbook = _excelApp.Workbooks.Open(file,
+                        Type.Missing, Type.Missing, Type.Missing, Type.Missing,
+                        Type.Missing, Type.Missing, Type.Missing, Type.Missing,
+                        Type.Missing, Type.Missing, Type.Missing, Type.Missing,
+                        Type.Missing, Type.Missing);
 
-                string pdf = "Dr. Anuj Camanocha";
-                string remark = "Updated";
+                    //select the first sheet        
+                    Worksheet worksheet = (Worksheet)workbook.Worksheets[1];
 
-                excelRange.AutoFilter(2, pdf,
-                                 Microsoft.Office.Interop.Excel.XlAutoFilterOperator.xlFilterValues, Type.Missing, true);
+                    //find the used range in worksheet
+                    Range excelRange = worksheet.UsedRange;
 
-                excelRange.AutoFilter(16, remark,
-                                 Microsoft.Office.Interop.Excel.XlAutoFilterOperator.xlFilterValues, Type.Missing, true);
+                    string remark = "Updated";
 
-                CreateExcel(pdf);
+                    excelRange.AutoFilter(2, pdf,
+                                     Microsoft.Office.Interop.Excel.XlAutoFilterOperator.xlFilterValues, Type.Missing, true);
 
-                string destPath = "D:\\" + pdf + ".xlsx";
-                Workbook destworkBook = _excelApp.Workbooks.Open(destPath, 0, false);
-                Worksheet destworkSheet = destworkBook.Worksheets.get_Item(1);
+                    excelRange.AutoFilter(16, remark,
+                                     Microsoft.Office.Interop.Excel.XlAutoFilterOperator.xlFilterValues, Type.Missing, true);
 
-                Range from = worksheet.UsedRange;
-                Range to = destworkSheet.UsedRange;
 
-                from.Copy(to);
 
-                destworkBook.SaveAs("D:\\" + pdf + ".xlsx");              
-               
-                destworkBook.Close(false, Type.Missing, Type.Missing);
-                workbook.Close(false, Type.Missing, Type.Missing);
-                _excelApp.Quit();
-                   
+                    string excelFileDestination = Path.Combine(Directory.GetCurrentDirectory(), "ExcelFiles");
+
+                    CreateExcel(pdf);
+
+                    string destPath = excelFileDestination + "\\" + pdf + ".xlsx";
+                    Workbook destworkBook = _excelApp.Workbooks.Open(destPath, 0, false);
+                    Worksheet destworkSheet = destworkBook.Worksheets.get_Item(1);
+
+                    Range from = worksheet.UsedRange;
+                    Range to = destworkSheet.UsedRange;
+
+                    from.Copy(to);
+                    _excelApp.DisplayAlerts = false;
+                    destworkBook.SaveAs(excelFileDestination + "\\" + pdf + ".xlsx");
+
+                    string attachmentFile = excelFileDestination + "\\" + pdf + ".xlsx";
+
+
+                    destworkBook.Close(false, Type.Missing, Type.Missing);
+
+
+                    SendEmail(attachmentFile);
+
+                    workbook.Close(false, Type.Missing, Type.Missing);
+
+                    _excelApp.Quit();
+                }
+
                 MessageBox.Show("EXcel Generated Successfully");
 
             }
@@ -159,29 +176,32 @@ namespace MediNetCorpPDF_Extractor
 
             xlWorkBook = xlApp.Workbooks.Add(misValue);
             xlWorkSheet = (Microsoft.Office.Interop.Excel.Worksheet)xlWorkBook.Worksheets.get_Item(1);
-         
+
 
             //Here saving the file in xlsx
-            xlWorkBook.SaveAs("D:\\"+ pdf +".xlsx", Microsoft.Office.Interop.Excel.XlFileFormat.xlOpenXMLWorkbook, misValue,
+            string excelFileDestination = Path.Combine(Directory.GetCurrentDirectory(), "ExcelFiles");
+            xlApp.DisplayAlerts = false;
+            xlWorkBook.SaveAs(excelFileDestination + "\\" + pdf + ".xlsx", Microsoft.Office.Interop.Excel.XlFileFormat.xlOpenXMLWorkbook, misValue,
             misValue, misValue, misValue, Microsoft.Office.Interop.Excel.XlSaveAsAccessMode.xlExclusive, misValue, misValue, misValue, misValue, misValue);
 
 
             xlWorkBook.Close(true, misValue, misValue);
-            xlApp.Quit();       
+            xlApp.Quit();
         }
 
-        public void SendEmail(string softwareName)
+        public void SendEmail(string attachementFile)
         {
             try
             {
-                var htmlBody = "<h1>"+ softwareName + "</h1>";
+                var htmlBody = "<p>Please find Attached document</p>";
                 MailMessage message = new MailMessage();
                 SmtpClient smtp = new SmtpClient();
                 message.From = new MailAddress("amirmursal@gmail.com");
                 message.To.Add(new MailAddress("amirthink72@gmail.com"));
                 message.Subject = "Test";
                 message.IsBodyHtml = true; //to make message body as html  
-                message.Body = htmlBody;              
+                message.Body = htmlBody;
+                message.Attachments.Add(new Attachment(attachementFile));
                 smtp.Host = "smtp.gmail.com"; //for gmail host  
                 smtp.Port = 587;
                 smtp.UseDefaultCredentials = false;
@@ -194,7 +214,7 @@ namespace MediNetCorpPDF_Extractor
             {
                 throw ex;
             }
-        }       
+        }
 
     }
 
