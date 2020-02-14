@@ -137,8 +137,14 @@ namespace MediNetCorpPDF_Extractor
                     Workbook destworkBook = _excelApp.Workbooks.Open(destPath, 0, false);
                     Worksheet destworkSheet = destworkBook.Worksheets.get_Item(1);
 
-                    Range from = worksheet.UsedRange;
-                    Range to = destworkSheet.UsedRange;
+                    destworkSheet.Rows.RowHeight = 25;
+
+                    destworkSheet.Columns.ColumnWidth = 25;
+
+                    destworkSheet.Columns[13].ColumnWidth = 75;
+
+                    Range from = worksheet.UsedRange;             
+                    Range to = destworkSheet.UsedRange;               
 
                     from.Copy(to);
                     _excelApp.DisplayAlerts = false;
