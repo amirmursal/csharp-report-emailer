@@ -13,7 +13,11 @@ namespace MediNetCorpPDF_Extractor
         {
             InitializeComponent();
             DirectoryClean();
+            this.comboBox1.DropDownStyle = ComboBoxStyle.DropDownList;
+            this.btn_upload_excel.Enabled = false;
         }
+
+        string doctorColumn = "";
 
         public void DirectoryClean()
         {
@@ -49,7 +53,7 @@ namespace MediNetCorpPDF_Extractor
                             {
                                 File.Copy(file, Path.Combine(excelFileDestination, Path.GetFileName(file)), true);
                                 MessageBox.Show(file + " uploaded  Successfully");
-                                ProcessExcel(file);
+                                ProcessExcel(file);                              
                                 //DirectoryClean();
                             }
 
@@ -72,7 +76,7 @@ namespace MediNetCorpPDF_Extractor
                             {
                                 File.Copy(file, Path.Combine(excelFileDestination, Path.GetFileName(file)), true);
                                 MessageBox.Show(file + " uploaded  Successfully");
-                                ProcessExcel(file);
+                                ProcessExcel(file);                              
                                 //DirectoryClean();
                             }
                             else
@@ -97,7 +101,8 @@ namespace MediNetCorpPDF_Extractor
 
             try
             {
-                string[] FilterList = new string[] { "Dr. Anuj Camanocha", "Damon M Barbieri" , "DR Baptiste", "Dr Kerry White Brown", "Dr Shafeena Chatur", "Dr. Dunn", "Dr. Grob", "Dr. McGill", "Dr. Williams", "Dr.Bahr", "Dr.chawla", "GSO", "Hickory Tops" };
+                //string[] FilterList = new string[] { "Dr. Anuj Camanocha", "Damon M Barbieri" , "DR Baptiste", "Dr Kerry White Brown", "Dr Shafeena Chatur", "Dr. Dunn", "Dr. Grob", "Dr. McGill", "Dr. Williams", "Dr.Bahr", "Dr.chawla", "GSO", "Hickory Tops" };
+                string[] FilterList = new string[] { "Dr. Anuj Camanocha" };
 
                 foreach (string pdf in FilterList)
                 {
@@ -121,10 +126,11 @@ namespace MediNetCorpPDF_Extractor
 
                     string remark = "Updated";
 
-                    excelRange.AutoFilter(2, pdf,
+                    int docCol = Int32.Parse(doctorColumn);
+                    excelRange.AutoFilter(docCol, pdf,
                                      Microsoft.Office.Interop.Excel.XlAutoFilterOperator.xlFilterValues, Type.Missing, true);
 
-                    excelRange.AutoFilter(16, remark,
+                    excelRange.AutoFilter(16,remark,
                                      Microsoft.Office.Interop.Excel.XlAutoFilterOperator.xlFilterValues, Type.Missing, true);
 
 
@@ -162,6 +168,7 @@ namespace MediNetCorpPDF_Extractor
 
                     _excelApp.Quit();
                 }
+                getNonUpdatedData(file);
 
                 MessageBox.Show("EXcel Generated Successfully");
 
@@ -171,6 +178,66 @@ namespace MediNetCorpPDF_Extractor
                 MessageBox.Show(ex.Message);
             }
 
+        }
+
+        public void getNonUpdatedData(string file)
+        {
+            //create the Application object we can use in the member functions.
+            Microsoft.Office.Interop.Excel.Application _excelApp = new Microsoft.Office.Interop.Excel.Application();
+            _excelApp.Visible = true;
+
+            //open the workbook
+            Workbook workbook = _excelApp.Workbooks.Open(file,
+                Type.Missing, Type.Missing, Type.Missing, Type.Missing,
+                Type.Missing, Type.Missing, Type.Missing, Type.Missing,
+                Type.Missing, Type.Missing, Type.Missing, Type.Missing,
+                Type.Missing, Type.Missing);
+
+            //select the first sheet        
+            Worksheet worksheet = (Worksheet)workbook.Worksheets[1];
+
+            //find the used range in worksheet
+            Range excelRange = worksheet.UsedRange;
+
+            excelRange.Worksheet.AutoFilterMode = false;
+
+            string remark = "Non-Updated";
+
+            string[] listFilter = new string[] { "<>Updated*" };
+                      
+
+            excelRange.AutoFilter(16, listFilter,
+                             Microsoft.Office.Interop.Excel.XlAutoFilterOperator.xlAnd, Type.Missing, true);
+
+            string excelFileDestination = Path.Combine(Directory.GetCurrentDirectory(), "ExcelFiles");
+
+            CreateExcel(remark);
+
+            string destPath = excelFileDestination + "\\" + remark + ".xlsx";
+            Workbook destworkBook = _excelApp.Workbooks.Open(destPath, 0, false);
+            Worksheet destworkSheet = destworkBook.Worksheets.get_Item(1);
+
+            destworkSheet.Rows.RowHeight = 25;
+
+            destworkSheet.Columns.ColumnWidth = 25;
+
+            destworkSheet.Columns[13].ColumnWidth = 75;
+
+            Range from = worksheet.UsedRange;
+            Range to = destworkSheet.UsedRange;
+
+            from.Copy(to);
+            _excelApp.DisplayAlerts = false;
+            destworkBook.SaveAs(excelFileDestination + "\\" + remark + ".xlsx");
+
+            string attachmentFile = excelFileDestination + "\\" + remark + ".xlsx";
+
+
+            destworkBook.Close(false, Type.Missing, Type.Missing);          
+
+            workbook.Close(false, Type.Missing, Type.Missing);
+
+            _excelApp.Quit();
         }
 
         public void CreateExcel(string pdf)
@@ -222,6 +289,13 @@ namespace MediNetCorpPDF_Extractor
             }
         }
 
+        private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            int selectedIndex = comboBox1.SelectedIndex;
+            Object selectedItem = comboBox1.SelectedItem;
+            doctorColumn = selectedItem.ToString();
+            this.btn_upload_excel.Enabled = true;
+        }
     }
 
 }
