@@ -4,6 +4,7 @@ using System.IO;
 using Microsoft.Office.Interop.Excel;
 using System.Net.Mail;
 using System.Net;
+using System.Dynamic;
 
 namespace MediNetCorpPDF_Extractor
 {
@@ -101,8 +102,8 @@ namespace MediNetCorpPDF_Extractor
 
             try
             {
-                //string[] FilterList = new string[] { "Dr. Anuj Camanocha", "Damon M Barbieri" , "DR Baptiste", "Dr Kerry White Brown", "Dr Shafeena Chatur", "Dr. Dunn", "Dr. Grob", "Dr. McGill", "Dr. Williams", "Dr.Bahr", "Dr.chawla", "GSO", "Hickory Tops" };
-                string[] FilterList = new string[] { "Dr. Anuj Camanocha" };
+                string[] FilterList = new string[] { "Dr. Anuj Camanocha", "Damon M Barbieri" , "DR Baptiste", "Dr Kerry White Brown", "Dr Shafeena Chatur", "Dr. Dunn", "Dr. Grob", "Dr. McGill", "Dr. Williams", "Dr.Bahr", "Dr.chawla", "GSO", "Hickory Tops" };
+             
 
                 foreach (string pdf in FilterList)
                 {
@@ -158,11 +159,9 @@ namespace MediNetCorpPDF_Extractor
 
                     string attachmentFile = excelFileDestination + "\\" + pdf + ".xlsx";
 
-
                     destworkBook.Close(false, Type.Missing, Type.Missing);
 
-
-                    SendEmail(attachmentFile);
+                    getEmailData(pdf, attachmentFile);                  
 
                     workbook.Close(false, Type.Missing, Type.Missing);
 
@@ -178,6 +177,57 @@ namespace MediNetCorpPDF_Extractor
                 MessageBox.Show(ex.Message);
             }
 
+        }
+             
+
+        public void getEmailData(string pdf, string attachmentFile)
+        {
+            string excelFileDestination = Path.Combine(Directory.GetCurrentDirectory(), "data");
+            string file = excelFileDestination + "\\data.xlsx";          
+            
+            //create the Application object we can use in the member functions.
+            Microsoft.Office.Interop.Excel.Application _excelApp = new Microsoft.Office.Interop.Excel.Application();
+            _excelApp.Visible = true;
+
+            //open the workbook
+            Workbook workbook = _excelApp.Workbooks.Open(file,
+                Type.Missing, Type.Missing, Type.Missing, Type.Missing,
+                Type.Missing, Type.Missing, Type.Missing, Type.Missing,
+                Type.Missing, Type.Missing, Type.Missing, Type.Missing,
+                Type.Missing, Type.Missing);
+
+            //select the first sheet        
+            Worksheet worksheet = (Worksheet)workbook.Worksheets[1];
+
+            //find the used range in worksheet
+            Range excelRange = worksheet.UsedRange;
+            Microsoft.Office.Interop.Excel.Range visibleCells = worksheet.UsedRange.SpecialCells(
+                                Microsoft.Office.Interop.Excel.XlCellType.xlCellTypeVisible,
+                          Type.Missing);
+
+            foreach (Microsoft.Office.Interop.Excel.Range area in visibleCells.Areas)
+            {
+                foreach (Microsoft.Office.Interop.Excel.Range row in area.Rows)
+                {
+                    if (((Microsoft.Office.Interop.Excel.Range)row.Cells[1, 1]).Text != "Office Name")
+                    {
+                        string docName = ((Microsoft.Office.Interop.Excel.Range)row.Cells[1, 1]).Text;
+                        if(docName==pdf){
+                         
+                            string email = ((Microsoft.Office.Interop.Excel.Range)row.Cells[1, 2]).Text;
+                            string credentials = ((Microsoft.Office.Interop.Excel.Range)row.Cells[1, 3]).Text;
+                            string to = ((Microsoft.Office.Interop.Excel.Range)row.Cells[1, 4]).Text;
+                            SendEmail(attachmentFile, email, credentials, to);
+                        }                   
+                       
+                    }
+                   
+                }
+            }
+
+            workbook.Close(false, Type.Missing, Type.Missing);
+
+            _excelApp.Quit();
         }
 
         public void getNonUpdatedData(string file)
@@ -262,15 +312,15 @@ namespace MediNetCorpPDF_Extractor
             xlApp.Quit();
         }
 
-        public void SendEmail(string attachementFile)
+        public void SendEmail(string attachementFile, string email, string credentials, string to)
         {
             try
             {
                 var htmlBody = "<p>Please find Attached document</p>";
                 MailMessage message = new MailMessage();
                 SmtpClient smtp = new SmtpClient();
-                message.From = new MailAddress("amirmursal@gmail.com");
-                message.To.Add(new MailAddress("amirthink72@gmail.com"));
+                message.From = new MailAddress(email);
+                message.To.Add(new MailAddress(to));
                 message.Subject = "Test";
                 message.IsBodyHtml = true; //to make message body as html  
                 message.Body = htmlBody;
@@ -278,7 +328,7 @@ namespace MediNetCorpPDF_Extractor
                 smtp.Host = "smtp.gmail.com"; //for gmail host  
                 smtp.Port = 587;
                 smtp.UseDefaultCredentials = false;
-                smtp.Credentials = new NetworkCredential("amirmursal@gmail.com", "amirarshin");
+                smtp.Credentials = new NetworkCredential(email, credentials);
                 smtp.EnableSsl = true;
                 smtp.DeliveryMethod = SmtpDeliveryMethod.Network;
                 smtp.Send(message);
